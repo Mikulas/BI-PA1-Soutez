@@ -78,7 +78,7 @@ foreach (scandir('tests') as $dir)
 			exec('git diff --minimal --color --no-index tests/_real tests/_expected', $diff);
 			$diff = array_slice($diff, 5);
 			$diff = implode("\n", $diff);
-			echo $diff;
+			echo "$diff\n";
 
 			unlink(__DIR__ . '/tests/_real');
 			unlink(__DIR__ . '/tests/_expected');
@@ -89,18 +89,18 @@ foreach (scandir('tests') as $dir)
 
 		if ($time !== NULL)
 		{
-			echo "\n\n\033[1;34mtime:  " . round($time, 4) . " ms\033[0m\n";
+			echo "\033[1;34mtime:  " . round($time, 4) . " ms\033[0m\n";
 		}
 
 		if ($time || $real !== $expected) {
-			echo "\n\033[1;34m" . str_repeat('-', 80) . "\033[0m\n\n";
+			echo "\033[1;34m" . str_repeat('-', 80) . "\033[0m\n";
 		}
 
 		$total_time += $time;
 	}
 }
 
-echo "\033[1;34mtotal: " . round($total_time, 4) . " ms\033[0m\n";
+echo "\n\033[1;34mtotal: " . round($total_time, 4) . " ms\033[0m\n";
 if ($ok)
 {
 	echo "\033[1;32mtests ok\033[0m\n";
