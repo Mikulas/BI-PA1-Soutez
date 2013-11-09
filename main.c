@@ -3,6 +3,8 @@
 #ifndef __PROGTEST__
 	#include <time.h>
 #endif
+#define MAX_WIDTH 32
+#define MAX_HEIGHT 32
 
 void inputError()
 {
@@ -23,6 +25,8 @@ int main()
 
 	printf("Zadejte puzzle:\n");
 
+
+
 	//
 	// Load puzzle
 	//
@@ -40,9 +44,10 @@ int main()
 			width++;
 		}
 	} while (c != '\n');
-	if (width == 0) inputError();
+	if (width == 0 || width > MAX_WIDTH) inputError();
 
 	int column;
+	int height = 0;
 	// read puzzle content
 	while (1)
 	{
@@ -63,6 +68,7 @@ int main()
 			if (state == 0 && c == '\n' && column != width) inputError();
 			if (state == 0 && c == '|') {
 				if (getchar() != '\n') inputError();
+				height++;
 				break;
 			}
 
@@ -111,6 +117,7 @@ int main()
 		if (closingLine)
 			break;
 	}
+	if (height > MAX_HEIGHT) inputError();
 
 	//
 	// Solve puzzle
