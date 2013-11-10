@@ -5,6 +5,8 @@
 #endif
 #define MAX_WIDTH 32
 #define MAX_HEIGHT 32
+#define MAX_BOXES 200
+#define CERTAIN 0 // for solution tensor
 
 void inputError(int d)
 {
@@ -28,6 +30,7 @@ int main()
 	printf("Zadejte puzzle:\n");
 
 	int board[MAX_HEIGHT][MAX_WIDTH] = {{0}};
+	int solution[MAX_HEIGHT][MAX_WIDTH][MAX_BOXES + 1] = {{{0}}};
 
 	//
 	// Load puzzle
@@ -50,6 +53,8 @@ int main()
 
 	int column;
 	int height = 0;
+	int numbers = 0;
+	int sum = 0;
 	int firstDigit;
 	// read puzzle content
 	while (1)
@@ -79,6 +84,9 @@ int main()
 			if (state == 2 && c != ' ')
 			{
 				board[height][column] = firstDigit * 10 + c - 48;
+				sum += board[height][column];
+				numbers++;
+				firstDigit = 0;
 			}
 
 			if (state != 0 && c == '\n') inputError(8);
@@ -135,7 +143,7 @@ int main()
 		if (closingLine)
 			break;
 	}
-	if (height > MAX_HEIGHT) inputError(16);
+	if (height > MAX_HEIGHT || numbers > MAX_BOXES) inputError(16);
 
 	//
 	// Solve puzzle
@@ -152,6 +160,54 @@ int main()
 	printf("width=%d height=%d\n", width, height);
 	//*/
 
+	if (sum != width * height) // optimization
+	{
+		printf("Reseni neexistuje.\n");
+		// TODO else ale to jeste neznamena, ze existuje
+	}
+
+	int blanks = width * height;
+	for (int row = 0; row < height; ++row)
+	{
+		for (int col = 0; col < width; ++col)
+		{
+			// set unique id for this box
+			if (board[row][width] != 0)
+			{
+				solution[row][width][CERTAIN] = row * MAX_WIDTH + width;
+				blanks--;
+			}
+		}
+	}
+
+	if (blanks == 0)
+	{
+		// done
+	}
+
+	// FIND all certain numbers, example:
+	// 5#  resolves to  5#
+	// 2#               22
+	//
+	// or
+	// ##3# always must evaluate to #33#
+	// save those to CERTAIN
+	// if there is already a CERTAIN number on the location,
+	// puzzle has no solution
+
+	// FIND possible numbers
+	// 5#3 means # is either 5 or 3 only
+	// save this to first empty location
+	// when after iteration over all boxes this vector
+	// only contains one number, it should be moved to certain
+
+	// loop while no new numbers are added
+	// then, there are multiple solutions:
+	// pick one, continue, then return and try other paths
+
+	// prime numbers are always in line
+	// is factorization any good?
+	// many numbers only have one solution
 
 	#ifndef __PROGTEST__
 		end = clock();
