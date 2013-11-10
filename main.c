@@ -19,25 +19,17 @@ void inputError(int d)
 	exit(1);
 }
 
-int main()
+void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
 {
-	#ifndef __PROGTEST__
-		clock_t begin, end;
-		double time_spent;
-		begin = clock();
-	#endif
-
-	printf("Zadejte puzzle:\n");
-
-	int board[MAX_HEIGHT][MAX_WIDTH] = {{0}};
-	int solution[MAX_HEIGHT][MAX_WIDTH][MAX_BOXES + 1] = {{{0}}};
+	*width = 0;
+	*height = 0;
+	*sum = 0;
 
 	//
 	// Load puzzle
 	//
 	char c;
 	char state = 0; // 0: expecting +, 1: expecting - or EOL, 2: expecting -
-	int width = 0;
 	do {
 		c = getchar();
 		if (state == 0 && c != '+') inputError(1);
@@ -46,15 +38,13 @@ int main()
 		state = (state + 1) % 3;
 
 		if (state == 0) {
-			width++;
+			(*width)++;
 		}
 	} while (c != '\n');
-	if (width == 0 || width > MAX_WIDTH) inputError(4);
+	if (*width == 0 || *width > MAX_WIDTH) inputError(4);
 
 	int column;
-	int height = 0;
 	int numbers = 0;
-	int sum = 0;
 	int firstDigit;
 	// read puzzle content
 	while (1)
@@ -83,18 +73,19 @@ int main()
 			}
 			if (state == 2 && c != ' ')
 			{
-				board[height][column] = firstDigit * 10 + c - 48;
-				sum += board[height][column];
+				int number = firstDigit * 10 + c - 48;
+				board[*height][column] = number;
+				*sum += number;
 				numbers++;
 				firstDigit = 0;
 			}
 
 			if (state != 0 && c == '\n') inputError(8);
 			if (state != 3 && state != 0 && c == '|') inputError(9);
-			if (state == 0 && c == '\n' && column != width) inputError(10);
+			if (state == 0 && c == '\n' && column != *width) inputError(10);
 			if (state == 0 && c == '|') {
 				if (getchar() != '\n') inputError(11);
-				height++;
+				(*height)++;
 				break;
 			}
 
@@ -131,7 +122,7 @@ int main()
 			}
 			if (state == 1 && c == '\n')
 			{
-				if (column != width) inputError(15);
+				if (column != *width) inputError(15);
 				break;
 			}
 
@@ -143,7 +134,24 @@ int main()
 		if (closingLine)
 			break;
 	}
-	if (height > MAX_HEIGHT || numbers > MAX_BOXES) inputError(16);
+	if (*height > MAX_HEIGHT || numbers > MAX_BOXES) inputError(16);
+}
+
+int main()
+{
+	#ifndef __PROGTEST__
+		clock_t begin, end;
+		double time_spent;
+		begin = clock();
+	#endif
+
+	int board[MAX_HEIGHT][MAX_WIDTH];
+	int (*p_board)[MAX_WIDTH] = board;
+	int solution[MAX_HEIGHT][MAX_WIDTH][MAX_BOXES + 1];
+
+	printf("Zadejte puzzle:\n");
+	int width, height, sum;
+	loadPuzzle(p_board, &width, &height, &sum);
 
 	//
 	// Solve puzzle
