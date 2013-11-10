@@ -6,7 +6,7 @@
 #define MAX_WIDTH 32
 #define MAX_HEIGHT 32
 #define MAX_BOXES 200
-#define CERTAIN 0 // for solution tensor
+#define CERTAIN 200 // index of matrix with certain numbers in solution tensor 
 
 void inputError(int d)
 {
@@ -137,6 +137,14 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
 	if (*height > MAX_HEIGHT || numbers > MAX_BOXES) inputError(16);
 }
 
+/**
+ * @return int index of last filled box
+ */
+int fillCertainBoxes(int board[][MAX_WIDTH], int solution[][MAX_WIDTH][MAX_BOXES + 1], int *width, int *height)
+{
+	
+}
+
 int main()
 {
 	#ifndef __PROGTEST__
@@ -192,6 +200,16 @@ int main()
 	{
 		// done
 	}
+
+	int newBoxAssigned = 0;
+	// Make deterministic partial solutions.
+	// PERFORMANCE: Worst case first number is changed and then the
+	// puzzle is reiterated all over again => break after change and
+	// loop only once, or continue and break on the changed index.
+	do
+	{
+
+	} while (newBoxAssigned);
 
 	// FIND all certain numbers, example:
 	// 5#  resolves to  5#
