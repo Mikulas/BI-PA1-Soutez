@@ -14,6 +14,10 @@
 #define NO_SOLUTION -2 // fillCertainBoxes return value
 #define SOLUTION_FOUND -3 // fillCertainBoxes return value
 
+// CO TED DELAM:
+// chci aby v kazdem testovanem possible rectanglu byly VSECHNY boxy s danym id
+     // TODO if there are more number of the same id, each must must contain all of them
+
 // a is current sount, max 99
 // b is expected count, max 99
 // TODO use another data types! char
@@ -193,7 +197,6 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
     /**
      * For each id on field, find all properly sized rectangles and test they fit on board
      */
-     // TODO if there are more number of the same id, each must must contain all of them
 
     int done = 1;
     for (int row = 0; row < height; ++row)
@@ -244,6 +247,22 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
                                     goto next; // break;
                                 }
                             }
+                            // test if rectangle contains all ids already on board
+                            int sameIdsCoveredByThisRectangle = 0;
+                            for (int test_y = y; test_y < y + box_height; ++test_y)
+                            {
+                                for (int test_x = x; test_x < x + box_width; ++test_x)
+                                {
+                                    if (solution[test_y][test_x][CERTAIN] == id)
+                                        sameIdsCoveredByThisRectangle++;
+                                }
+                            }
+                            if (sameIdsCoveredByThisRectangle != counts[id])
+                            {
+                                // rectangle does not contain all same ids already on board
+                                goto next;
+                            }
+                            
                             // if we got here, the box fits: write to solution as possible number
                             currentRectangleIsPossible = 1;
                             for (int test_y = y; test_y < y + box_height; ++test_y)
