@@ -13,6 +13,10 @@
 #define NOT_FOUND -1 // fillCertainBoxes return value
 #define NO_SOLUTION -2 // fillCertainBoxes return value
 
+// a is current sount, max 99
+// b is expected count, max 99
+// TODO use another data types! char
+// TODO 2 remove it altogether as only b is needed
 struct Pair
 {
 	int a;
@@ -21,6 +25,7 @@ struct Pair
 
 void inputError(int d)
 {
+	d = 0; // ignore warning
 	// printf("input error #%d\n", d);
 
 	// read until EOF
@@ -148,6 +153,10 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
 	if (*height > MAX_HEIGHT || numbers > MAX_BOXES) inputError(16);
 }
 
+
+// TODO refactor
+int counts[MATRIX_SIZE];
+
 /**
  * Should converge faster with sizes sorted by size desc
  * @return int index of last filled box or NOT_FOUND
@@ -184,6 +193,8 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
 	 * For each id on field, find all properly sized rectangles and test they fit on board
 	 */
 	 // TODO if there are more number of the same id, each must must contain all of them
+    
+    // TODO MAJOR if there count(id) == sizes, skip it, so it does not create new possible paths! !!!
 	for (int row = 0; row < height; ++row)
 	{
 		for (int col = 0; col < width; ++col)
@@ -193,14 +204,18 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
 				continue;
 			}
 
-			const int id = row * MAX_WIDTH + width;
+			const int id = row * MAX_WIDTH + col;
+            
+            // if this rectangle is complete
+            if (counts[id] == sizes[id].b)
+                continue;
 			const int size = sizes[id].b; // if sort is not active, which indeed isn't
 
 			int box_width = 1;
 			int box_height;
 			// PERFORMANCE: profile this
 
-			while (box_width < sqrt(size))
+			while (box_width <= size)
 			{
 				if (size % box_width == 0) {
 					box_height = size / box_width;
@@ -208,44 +223,47 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
 					// move it all the way up and test all moves down
 					for (int y = row + (-box_height + 1); y <= row; ++y)
 					{
-						if (y < 0) continue; // outside of board
+						if (y < 0 || y + box_height > height) continue; // outside of board
 
 						// move it all the way to the left and test all moves to right
 						for (int x = col + (-box_width + 1); x <= col; ++x)
 						{
-							if (x < 0) continue; // outside of board
+							if (x < 0 || x + box_width > width) continue; // outside of board
 
 							// test if [x,y] to [x+width, y+height] is empty
-							for (int test_y = y; y <= y + box_height; ++y)
+							for (int test_y = y; test_y < y + box_height; ++test_y)
 							{
-								for (int test_x = x; x <= x + box_width; ++x)
+								for (int test_x = x; test_x < x + box_width; ++test_x)
 								{
-									if (solution[test_y][test_x][CERTAIN] != NOT_SET)
+									if (solution[test_y][test_x][CERTAIN] != NOT_SET
+                                        && solution[test_y][test_x][CERTAIN] != id)
 									goto next; // break;
 								}
 							}
 							// if here box fits, write to solution as possible number
-							for (int test_y = y; y <= y + box_height; ++y)
+							for (int test_y = y; test_y < y + box_height; ++test_y)
 							{
-								for (int test_x = x; x <= x + box_width; ++x)
+								for (int test_x = x; test_x < x + box_width; ++test_x)
 								{
+                                    if (test_y == row && test_x == col) continue; // already in CERTAIN
+
 									for (int index = 0; /* must break */; ++index)
 									{
 										if (solution[test_y][test_x][index] == NOT_SET)
 										{
 											solution[test_y][test_x][index] = id;
-											goto next; // break 3;
+											break;
 										}
 										else if (solution[test_y][test_x][index] == id)
 										{
-											goto next; // break 3;
+											break;
 										}
 									}
 								}
 							}
-
-							next:
-							continue;
+                            
+                            next:
+                            continue;
 						}
 					}
 				}
@@ -263,17 +281,19 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
 		for (int col = 0; col < width; ++col)
 		{
 			// only one id is tracked as possible
-			if (solution[row][col] != NOT_SET && solution[row][col] == NOT_SET)
+			if (solution[row][col][0] != NOT_SET && solution[row][col][1] == NOT_SET)
 			{
-				changeFound = 1;
-				const int id = row * MAX_WIDTH + width;
+				changeFound++;
 				if (solution[row][col][CERTAIN] != NOT_SET)
 				{
 					return NO_SOLUTION;
 				}
+                const int id = solution[row][col][0];
 				solution[row][col][CERTAIN] = id;
+                counts[id] += 1;
 			}
 			// clear possible values
+			// PERFORMANCE: could check, if value is zero break, but the check might be slow
 			for (int i = 0; i < MAX_BOXES; ++i)
 			{
 				solution[row][col][i] = NOT_SET;
@@ -289,6 +309,82 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
 // 	return ( ((struct Pair*) second)->b - ((struct Pair*) first)->b );
 // }
 
+void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height)
+{
+	for (int row = 0; row < height; ++row)
+	{
+		for (int col = 0; col < width; ++col)
+		{
+			const int id = solution[row][col][CERTAIN];
+			printf("%d ", id);
+		}
+		printf("\n");
+	}
+}
+
+void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height)
+{
+	// print first border line
+	printf("+");
+	for (int col = 0; col < width; ++col)
+	{
+		printf("--+");
+	}
+	printf("\n");
+
+	for (int row = 0; row < height; ++row)
+	{
+		// print numbers
+		printf("|");
+		for (int col = 0; col < width; ++col)
+		{
+			const int id = solution[row][col][CERTAIN];
+			if (id == NOT_SET)
+			{
+				printf("  ");
+			}
+			else
+			{
+				const int size = sizes[id].b;
+				if (size < 10) // two digits
+					printf(" %d", size);
+				else
+					printf("%d", size);
+			}
+			if (col != width - 1)
+			{
+				if (col + 1 >= width || solution[row][col][CERTAIN] != solution[row][col + 1][CERTAIN])
+				{
+					printf("|");
+				}
+				else
+				{
+					printf(" ");
+				}
+			}
+		}
+		printf("|");
+
+		if (row != height - 1) // if not last row
+		{
+			for (int col = 0; col < width; ++col)
+			{
+				printf("  +");
+			}
+			// print border
+		}
+		printf("\n");
+	}
+
+	// print last border line
+	printf("+");
+	for (int col = 0; col < width; ++col)
+	{
+		printf("--+");
+	}
+	printf("\n");
+}
+
 int main()
 {
 	#ifndef __PROGTEST__
@@ -299,10 +395,20 @@ int main()
 
 	// MEMORY: dynamically allocate sizes
 	// MEMORY: dynamically allocate solution
-	int board[MAX_HEIGHT][MAX_WIDTH] = {{0}};
+	int board[MAX_HEIGHT][MAX_WIDTH] = {{0}}; // TODO check this works
 	int (*p_board)[MAX_WIDTH] = board;
 	struct Pair sizes[MAX_HEIGHT * MAX_WIDTH]; // could be mapped to MAX_BOXES instead but this is faster
 	int solution[MAX_HEIGHT][MAX_WIDTH][MATRIX_SIZE] = {{{0}}};
+    for (int row = 0; row < MAX_HEIGHT; ++row)
+    {
+        for (int col = 0; col < MAX_WIDTH; ++col)
+        {
+            for (int i = 0; i < MATRIX_SIZE; ++i)
+            {
+                solution[row][col][i] = NOT_SET;
+            }
+        }
+    }
 
 	printf("Zadejte puzzle:\n");
 	int width, height, sum;
@@ -340,7 +446,7 @@ int main()
 			if (board[row][col] != 0)
 			{
 				solution[row][col][CERTAIN] = id;
-				sizes[id].a = id;
+                counts[id] = 1; // there is exactly one number with this id on the board at this point
 				sizes[id].b = board[row][col];
 				blanks--;
 			}
@@ -370,7 +476,6 @@ int main()
 	// 	}
 	// }
 
-	int newBoxAssigned = 0;
 	// Make deterministic partial solutions.
 	// PERFORMANCE: Worst case first number is changed and then the
 	// puzzle is reiterated all over again => break after change and
@@ -381,6 +486,8 @@ int main()
 	do
 	{
 		res = fillCertainBoxes(solution, sizes, width, height);
+        //printRawSolution(solution, sizes, width, height);
+        //printSolution(solution, sizes, width, height);
 		if (res == NO_SOLUTION)
 		{
 			printf("Reseni neexistuje.\n");
@@ -389,8 +496,9 @@ int main()
 		else if (res == NOT_FOUND)
 		{
 			printf("Reseni asi existuje ale algo se zasek (konec nebo branching).\n");
+			printSolution(solution, sizes, width, height);
 		}
-	} while (newBoxAssigned);
+	} while (res > 0); // number of changes found
 	// split paths, pick one number, continue, then pick other paths
 
 
