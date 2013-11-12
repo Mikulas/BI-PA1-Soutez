@@ -195,7 +195,6 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
      */
      // TODO if there are more number of the same id, each must must contain all of them
 
-    // TODO MAJOR if there count(id) == sizes, skip it, so it does not create new possible paths! !!!
     int done = 1;
     for (int row = 0; row < height; ++row)
     {
@@ -251,7 +250,8 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
                             {
                                 for (int test_x = x; test_x < x + box_width; ++test_x)
                                 {
-                                    if (test_y == row && test_x == col) continue; // already in CERTAIN
+                                    if (solution[test_y][test_x][CERTAIN] == id)
+                                        continue; // TODO check this
 
                                     for (int index = 0; /* must break */; ++index)
                                     {
@@ -300,13 +300,21 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
             if (solution[row][col][0] != NOT_SET && solution[row][col][1] == NOT_SET)
             {
                 changeFound++;
-                if (solution[row][col][CERTAIN] != NOT_SET)
+                if (solution[row][col][CERTAIN] != NOT_SET
+                    && solution[row][col][CERTAIN] != solution[row][col][0]) // PERFORMANCE: Not quite sure why this happens, should be eliminated
                 {
                     return NO_SOLUTION;
                 }
                 const int id = solution[row][col][0];
                 solution[row][col][CERTAIN] = id;
                 counts[id] += 1;
+                
+                //     PERFORMANCE: This should not happen. How did we got here in the first place?
+                //     ALSO A HUGE BUG!!! Seriously, fix this!
+                // This should be fixed now
+                if (counts[id] > sizes[id].b) {
+                    counts[id] = sizes[id].b;
+                }
             }
             // clear possible values
             // PERFORMANCE: could check, if value is zero break, but the check might be slow
@@ -338,7 +346,7 @@ void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[
     }
 }
 
-void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height)
+void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height, int printId)
 {
     // print first border line
     printf("+");
@@ -355,6 +363,16 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
         for (int col = 0; col < width; ++col)
         {
             const int id = solution[row][col][CERTAIN];
+            const int xid = id; // TODO remove dbg helper
+            const int complete = counts[id] == sizes[id].b;
+            
+            const int rightId = col + 1 < MAX_WIDTH ? solution[row][col + 1][CERTAIN] : NOT_SET;
+            const int rightComplete = rightId != NOT_SET ? counts[rightId] == sizes[rightId].b : 0;
+
+            const int downId = row + 1 < MAX_HEIGHT ? solution[row + 1][col][CERTAIN] : NOT_SET;
+            const int downComplete = downId != NOT_SET ? counts[downId] == sizes[downId].b : 0;
+
+            //printf("complete: %d (real %d == exp %d)\n", complete, counts[id], sizes[id].b);
             if (id == NOT_SET)
             {
                 printf("  ");
@@ -362,18 +380,38 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
             else
             {
                 const int size = sizes[id].b;
-                if (size < 10) // two digits
-                    printf(" %d", size);
+                if (printId)
+                {
+                    if (id < 10) // two digits
+                        printf(" %d", id);
+                    else
+                        printf("%d", id);
+                }
                 else
-                    printf("%d", size);
+                {
+                    if (size < 10) // two digits
+                        printf(" %d", size);
+                    else
+                        printf("%d", size);
+                }
             }
             if (col != width - 1)
             {
-                if (col + 1 >= width || (
-                    solution[row][col][CERTAIN] != solution[row][col + 1][CERTAIN]
-                    && solution[row][col][CERTAIN] != NOT_SET
-                    && solution[row][col + 1][CERTAIN] != NOT_SET
-                ))
+                if (col + 1 >= width) // board border
+                {
+                    printf("|");
+                }
+                else if (solution[row][col][CERTAIN] == NOT_SET)
+                {
+                    printf(rightComplete ? "|" : " ");
+                }
+                else if (solution[row][col + 1][CERTAIN] != NOT_SET
+                         && solution[row][col][CERTAIN] != solution[row][col + 1][CERTAIN])
+                {
+                    printf("|");
+                }
+                else if (solution[row][col + 1][CERTAIN] == NOT_SET
+                         && complete)
                 {
                     printf("|");
                 }
@@ -517,11 +555,13 @@ int main()
     {
         res = fillCertainBoxes(solution, sizes, width, height);
         //printRawSolution(solution, sizes, width, height);
-        printSolution(solution, sizes, width, height);
+        printSolution(solution, sizes, width, height, 1);
+        printSolution(solution, sizes, width, height, 0);
+
         if (res == SOLUTION_FOUND)
         {
             printf("Jedno reseni:\n");
-            printSolution(solution, sizes, width, height);
+            printSolution(solution, sizes, width, height, 0);
             break;
         }
         else if (res == NO_SOLUTION)
@@ -532,7 +572,7 @@ int main()
         else if (res == NOT_FOUND)
         {
             printf("Reseni asi existuje ale algo se zasek (konec nebo branching).\n");
-            printSolution(solution, sizes, width, height);
+            printSolution(solution, sizes, width, height, 0);
         }
     } while (res > 0); // number of changes found
     // split paths, pick one number, continue, then pick other paths
