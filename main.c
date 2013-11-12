@@ -8,15 +8,15 @@
 #define MAX_HEIGHT 32
 #define MAX_BOXES 200
 #define CERTAIN 200 // index of matrix with certain numbers in solution tensor
-#define MATRIX_SIZE (MAX_BOXES + 1) // for CERTAIN
+#define ORIGINAL 201 // --//--
+#define MATRIX_SIZE (MAX_BOXES + 2) // for CERTAIN and ORIGINAL
 #define NOT_SET -1 // solutions[][][CERTAIN]
 #define NOT_FOUND -1 // fillCertainBoxes return value
 #define NO_SOLUTION -2 // fillCertainBoxes return value
 #define SOLUTION_FOUND -3 // fillCertainBoxes return value
 
-// CO TED DELAM:
-// chci aby v kazdem testovanem possible rectanglu byly VSECHNY boxy s danym id
-     // TODO if there are more number of the same id, each must must contain all of them
+// TODO Dobry plan co ale chce promyslet:
+// pokud mam dve CERTAIN co nejsou vedle sebe ale jsou na stejne lince, mezi nima taky musi byt tohle certain
 
 // a is current sount, max 99
 // b is expected count, max 99
@@ -218,8 +218,6 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
 
             int box_width = 1;
             int box_height;
-            // PERFORMANCE: profile this
-            printf("id=%d\n",id);
             int currentRectangleIsPossible = 0;
 
             while (box_width <= size)
@@ -276,7 +274,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
                                     {
                                         if (solution[test_y][test_x][index] == NOT_SET)
                                         {
-                                            printf("[%d][%d] could be id %d\n", test_y, test_x, id);
+                                            //printf("[%d][%d] could be id %d\n", test_y, test_x, id);
                                             solution[test_y][test_x][index] = id;
                                             break;
                                         }
@@ -365,7 +363,7 @@ void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[
     }
 }
 
-void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height, int printId)
+void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height, int originalOnly, int printId)
 {
     // print first border line
     printf("+");
@@ -382,7 +380,6 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
         for (int col = 0; col < width; ++col)
         {
             const int id = solution[row][col][CERTAIN];
-            const int xid = id; // TODO remove dbg helper
             const int complete = counts[id] == sizes[id].b;
             
             const int rightId = col + 1 < MAX_WIDTH ? solution[row][col + 1][CERTAIN] : NOT_SET;
@@ -392,7 +389,7 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
             const int downComplete = downId != NOT_SET ? counts[downId] == sizes[downId].b : 0;
 
             //printf("complete: %d (real %d == exp %d)\n", complete, counts[id], sizes[id].b);
-            if (id == NOT_SET)
+            if (id == NOT_SET || (originalOnly && !solution[row][col][ORIGINAL]))
             {
                 printf("  ");
             }
@@ -533,6 +530,7 @@ int main()
             if (board[row][col] != 0)
             {
                 solution[row][col][CERTAIN] = id;
+                solution[row][col][ORIGINAL] = 1;
                 counts[id] = 1; // there is exactly one number with this id on the board at this point
                 sizes[id].b = board[row][col];
                 blanks--;
@@ -540,6 +538,7 @@ int main()
             else
             {
                 solution[row][col][CERTAIN] = NOT_SET;
+                solution[row][col][ORIGINAL] = 0;
                 sizes[id].a = 0;
                 sizes[id].b = 0;
             }
@@ -573,14 +572,13 @@ int main()
     do
     {
         res = fillCertainBoxes(solution, sizes, width, height);
-        //printRawSolution(solution, sizes, width, height);
-        printSolution(solution, sizes, width, height, 1);
-        printSolution(solution, sizes, width, height, 0);
+        //printSolution(solution, sizes, width, height, 1);
+        //printSolution(solution, sizes, width, height, 0);
 
         if (res == SOLUTION_FOUND)
         {
             printf("Jedno reseni:\n");
-            printSolution(solution, sizes, width, height, 0);
+            printSolution(solution, sizes, width, height, 1, 0);
             break;
         }
         else if (res == NO_SOLUTION)
@@ -591,7 +589,7 @@ int main()
         else if (res == NOT_FOUND)
         {
             printf("Reseni asi existuje ale algo se zasek (konec nebo branching).\n");
-            printSolution(solution, sizes, width, height, 0);
+            printSolution(solution, sizes, width, height, 0, 0);
         }
     } while (res > 0); // number of changes found
     // split paths, pick one number, continue, then pick other paths
