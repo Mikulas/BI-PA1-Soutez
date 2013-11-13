@@ -147,7 +147,7 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
 
 
 // TODO refactor
-int counts[MATRIX_SIZE];
+int counts[MAX_HEIGHT * MAX_WIDTH];
 
 /**
  * Should converge faster with sizes sorted by size desc
@@ -197,7 +197,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
             }
 
             const int id = row * MAX_WIDTH + col;
-
+printf("%d\n", id);
             // if this rectangle is complete
             if (counts[id] == sizes[id])
                 continue;
