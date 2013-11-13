@@ -15,8 +15,15 @@
 #define NO_SOLUTION -2 // fillCertainBoxes return value
 #define SOLUTION_FOUND -3 // fillCertainBoxes return value
 
+// TED DELAM:
 // TODO Dobry plan co ale chce promyslet:
 // pokud mam dve CERTAIN co nejsou vedle sebe ale jsou na stejne lince, mezi nima taky musi byt tohle certain
+// NEBO
+// by slo implementovat, ze pokud ma id pouze jeden possible rectangle, tak se musi dat do CERTAIN.
+// uplne super by bylo, kdyby to umelo i partial solution. Implementace je jednoducha, staci tam dat,
+// ze kdyz je to na tom possible tolikrat, kolik je validnich rectanglu, tak je to CERTAIN. Akorat je
+// potreba zmenit to, jak se pracuje s detekci CERTAIN ted, to jak je tam to porovnavani [0] a [1]. Misto
+// toho by slo pres to iterovat a pocitat, kolik ruznych possible tam je. Pokud == 1, pick treba [0] (protoze jsou stejny)
 
 // a is current sount, max 99
 // b is expected count, max 99
@@ -203,7 +210,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
     {
         for (int col = 0; col < width; ++col)
         {
-            if (solution[row][col][CERTAIN] == NOT_SET)
+            if (solution[row][col][ORIGINAL] != 1) // TODO tady bylo puvodne CERTAIN, ale tohle musi byt rychlejsi a musi dat stejne vysledky
             {
                 continue;
             }
@@ -341,6 +348,82 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
             }
         }
     }
+    
+    // if there are multiple ids on line with gap, fill the gap
+// TODO FIX (test against basic/5
+if (0) {
+    int lastId;
+    int gapFrom; // either row or col, based on context
+    // test rows for gaps
+    for (int row = 0; row < height; ++row)
+    {
+        lastId = NOT_SET;
+        gapFrom = NOT_SET;
+        for (int col = 0; col < width; ++col)
+        {
+            if (lastId == NOT_SET)
+            {
+                lastId = solution[row][col][CERTAIN];
+            }
+            else if (solution[row][col][CERTAIN] == NOT_SET
+                && lastId != NOT_SET)
+            {
+                gapFrom = col;
+            }
+            else if (solution[row][col][CERTAIN] != NOT_SET
+                && solution[row][col][CERTAIN] != lastId)
+            {
+                gapFrom = NOT_SET;
+                lastId = solution[row][col][CERTAIN];
+            }
+            else if (gapFrom != NOT_SET
+                     && solution[row][col][CERTAIN] == lastId)
+            {
+                for (int colBack = gapFrom; colBack < col; ++colBack)
+                {
+                    solution[row][colBack][CERTAIN] = lastId;
+                    counts[lastId]++;
+                    changeFound++;
+                }
+            }
+        }
+    }
+    // test cols for gaps
+    // TODO check if this is ok, I just switched for loops
+    for (int col = 0; col < width; ++col)
+    {
+        lastId = NOT_SET;
+        gapFrom = NOT_SET;
+        for (int row = 0; row < height; ++row)
+        {
+            if (lastId == NOT_SET)
+            {
+                lastId = solution[row][col][CERTAIN];
+            }
+            else if (solution[row][col][CERTAIN] == NOT_SET
+                     && lastId != NOT_SET)
+            {
+                gapFrom = row;
+            }
+            else if (solution[row][col][CERTAIN] != NOT_SET
+                     && solution[row][col][CERTAIN] != lastId)
+            {
+                gapFrom = NOT_SET;
+                lastId = solution[row][col][CERTAIN];
+            }
+            else if (gapFrom != NOT_SET
+                     && solution[row][col][CERTAIN] == lastId)
+            {
+                for (int rowBack = gapFrom; rowBack < col; ++rowBack)
+                {
+                    solution[rowBack][col][CERTAIN] = lastId;
+                    counts[lastId]++;
+                    changeFound++;
+                }
+            }
+        }
+    }
+}
 
     return changeFound ? 1 : NOT_FOUND;
 }
@@ -385,11 +468,8 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
             const int rightId = col + 1 < MAX_WIDTH ? solution[row][col + 1][CERTAIN] : NOT_SET;
             const int rightComplete = rightId != NOT_SET ? counts[rightId] == sizes[rightId].b : 0;
 
-            const int downId = row + 1 < MAX_HEIGHT ? solution[row + 1][col][CERTAIN] : NOT_SET;
-            const int downComplete = downId != NOT_SET ? counts[downId] == sizes[downId].b : 0;
-
             //printf("complete: %d (real %d == exp %d)\n", complete, counts[id], sizes[id].b);
-            if (id == NOT_SET || (originalOnly && !solution[row][col][ORIGINAL]))
+            if (id == NOT_SET || ((originalOnly || complete) && !solution[row][col][ORIGINAL]))
             {
                 printf("  ");
             }
@@ -443,13 +523,33 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
             printf("|\n+");
             for (int col = 0; col < width; ++col)
             {
-                if (solution[row][col][CERTAIN] != solution[row + 1][col][CERTAIN]
-                    && solution[row][col][CERTAIN] != NOT_SET
-                    && solution[row + 1][col][CERTAIN] != NOT_SET
-                    )
+                const int id = solution[row][col][CERTAIN]; // TODO refactor with branch above
+                const int complete = counts[id] == sizes[id].b;
+                const int downId = row + 1 < MAX_HEIGHT ? solution[row + 1][col][CERTAIN] : NOT_SET;
+                const int downComplete = downId != NOT_SET ? counts[downId] == sizes[downId].b : 0;
+
+                if (row + 1 >= height) // board border
+                {
                     printf("--+");
+                }
+                else if (solution[row][col][CERTAIN] == NOT_SET)
+                {
+                    printf(downComplete ? "--+" : "  +");
+                }
+                else if (solution[row + 1][col][CERTAIN] != NOT_SET
+                         && solution[row][col][CERTAIN] != solution[row + 1][col][CERTAIN])
+                {
+                    printf("--+");
+                }
+                else if (solution[row + 1][col][CERTAIN] == NOT_SET
+                         && complete)
+                {
+                    printf("--+");
+                }
                 else
+                {
                     printf("  +");
+                }
             }
             // print border
         }
@@ -573,7 +673,7 @@ int main()
     {
         res = fillCertainBoxes(solution, sizes, width, height);
         //printSolution(solution, sizes, width, height, 1);
-        //printSolution(solution, sizes, width, height, 0);
+        printSolution(solution, sizes, width, height, 0, 0);
 
         if (res == SOLUTION_FOUND)
         {
@@ -589,6 +689,7 @@ int main()
         else if (res == NOT_FOUND)
         {
             printf("Reseni asi existuje ale algo se zasek (konec nebo branching).\n");
+            //printSolution(solution, sizes, width, height, 0, 1);
             printSolution(solution, sizes, width, height, 0, 0);
         }
     } while (res > 0); // number of changes found
