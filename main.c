@@ -334,6 +334,10 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
                     // TODO the box must be empty now, right?
                     solution[row][col][CERTAIN] = lastId;
                     counts[lastId] += 1;
+                    if (counts[lastId] > sizes[lastId])
+                    {
+                        return NO_SOLUTION;
+                    }
                     // TODO should I check if the count it not higher? It should not be
                     goto nextBox;
                 }
@@ -349,11 +353,9 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
                 solution[row][col][CERTAIN] = lastId;
                 counts[lastId] += 1;
                 
-                //     PERFORMANCE: This should not happen. How did we got here in the first place?
-                //     ALSO A HUGE BUG!!! Seriously, fix this!
-                // This should be fixed now
-                if (counts[lastId] > sizes[lastId]) {
-                    counts[lastId] = sizes[lastId];
+                if (counts[lastId] > sizes[lastId])
+                {
+                    return NO_SOLUTION;
                 }
             }
 
