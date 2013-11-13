@@ -186,7 +186,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
      */
 
     int done = 1;
-    int validRectangles[MAX_BOXES];
+    int validRectangles[MAX_HEIGHT * MAX_WIDTH];
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
@@ -197,7 +197,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
             }
 
             const int id = row * MAX_WIDTH + col;
-printf("%d\n", id);
+
             // if this rectangle is complete
             if (counts[id] == sizes[id])
                 continue;
@@ -216,7 +216,6 @@ printf("%d\n", id);
                     for (int y = row + (-box_height + 1); y <= row; ++y)
                     {
                         if (y < 0 || y + box_height > height) continue; // outside of board
-
                         // move it all the way to the left and test all moves to right
                         for (int x = col + (-box_width + 1); x <= col; ++x)
                         {
@@ -287,7 +286,7 @@ printf("%d\n", id);
     {
         return SOLUTION_FOUND;
     }
-    
+
     // TODO if validRectangles == 1, its CERTAIN
     // is this covered by count check below?
 
@@ -368,7 +367,7 @@ printf("%d\n", id);
             }
         }
     }
-    
+
     // return solution_found if done
     int allCertain = 1;
     for (int row = 0; row < height; ++row)
@@ -545,6 +544,7 @@ int main()
     int board[MAX_HEIGHT][MAX_WIDTH] = {{0}}; // TODO check this works
     int (*p_board)[MAX_WIDTH] = board;
     char sizes[MAX_HEIGHT * MAX_WIDTH]; // could be mapped to MAX_BOXES instead but this is faster
+
     int solution[MAX_HEIGHT][MAX_WIDTH][MATRIX_SIZE] = {{{0}}};
     for (int row = 0; row < MAX_HEIGHT; ++row)
     {
@@ -603,7 +603,6 @@ int main()
                 solution[row][col][CERTAIN] = NOT_SET;
                 solution[row][col][ORIGINAL] = 0;
                 sizes[id] = 0;
-                sizes[id] = 0;
             }
         }
     }
@@ -635,8 +634,8 @@ int main()
     do
     {
         res = fillCertainBoxes(solution, sizes, width, height);
-//        printSolution(solution, sizes, width, height, 0, 1);
-//        printSolution(solution, sizes, width, height, 0, 0);
+        // printSolution(solution, sizes, width, height, 0, 1);
+        // printSolution(solution, sizes, width, height, 0, 0);
 
         if (res == SOLUTION_FOUND)
         {
