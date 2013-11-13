@@ -15,16 +15,6 @@
 #define NO_SOLUTION -2 // fillCertainBoxes return value
 #define SOLUTION_FOUND -3 // fillCertainBoxes return value
 
-// TED DELAM:
-// TODO Dobry plan co ale chce promyslet:
-// pokud mam dve CERTAIN co nejsou vedle sebe ale jsou na stejne lince, mezi nima taky musi byt tohle certain
-// NEBO
-// by slo implementovat, ze pokud ma id pouze jeden possible rectangle, tak se musi dat do CERTAIN.
-// uplne super by bylo, kdyby to umelo i partial solution. Implementace je jednoducha, staci tam dat,
-// ze kdyz je to na tom possible tolikrat, kolik je validnich rectanglu, tak je to CERTAIN. Akorat je
-// potreba zmenit to, jak se pracuje s detekci CERTAIN ted, to jak je tam to porovnavani [0] a [1]. Misto
-// toho by slo pres to iterovat a pocitat, kolik ruznych possible tam je. Pokud == 1, pick treba [0] (protoze jsou stejny)
-
 void inputError(int d)
 {
     d = 0; // ignore warning
@@ -196,11 +186,12 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
      */
 
     int done = 1;
+    int validRectangles[MAX_BOXES];
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
         {
-            if (solution[row][col][ORIGINAL] != 1) // TODO tady bylo puvodne CERTAIN, ale tohle musi byt rychlejsi a musi dat stejne vysledky
+            if (solution[row][col][ORIGINAL] != 1) // TODO verify (tady bylo puvodne CERTAIN, ale tohle musi byt rychlejsi a musi dat stejne vysledky)
             {
                 continue;
             }
@@ -215,8 +206,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
 
             int box_width = 1;
             int box_height;
-            int currentRectangleIsPossible = 0;
-
+            validRectangles[id] = 0;
             while (box_width <= size)
             {
                 if (size % box_width == 0) {
@@ -259,7 +249,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
                             }
                             
                             // if we got here, the box fits: write to solution as possible number
-                            currentRectangleIsPossible = 1;
+                            validRectangles[id]++;
                             for (int test_y = y; test_y < y + box_height; ++test_y)
                             {
                                 for (int test_x = x; test_x < x + box_width; ++test_x)
@@ -275,22 +265,18 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
                                             solution[test_y][test_x][index] = id;
                                             break;
                                         }
-                                        else if (solution[test_y][test_x][index] == id)
-                                        {
-                                            break;
-                                        }
                                     }
                                 }
                             }
 
-                            next:
+                        next:
                             continue;
                         }
                     }
                 }
                 box_width++;
             }
-            if (!currentRectangleIsPossible)
+            if (validRectangles == 0)
             {
                 return NO_SOLUTION;
             }
@@ -301,6 +287,9 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
     {
         return SOLUTION_FOUND;
     }
+    
+    // TODO if validRectangles == 1, its CERTAIN
+    // is this covered by count check below?
 
     /**
      * For all boxes look if there is only one way to fill a box. If so, move it to certain and start again.
@@ -310,26 +299,65 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
     {
         for (int col = 0; col < width; ++col)
         {
-            // only one id is tracked as possible
-            if (solution[row][col][0] != NOT_SET && solution[row][col][1] == NOT_SET)
+            if (solution[row][col][CERTAIN] != NOT_SET)
+            {
+                continue;
+            }
+
+            int lastId = NOT_SET;
+            int unique = 1;
+            int count = 0;
+            for (int index = 0; index < MAX_BOXES; ++index)
+            {
+                if (solution[row][col][index] == NOT_SET)
+                {
+                    break;
+                }
+                
+                if (lastId != NOT_SET && solution[row][col][index] != lastId)
+                {
+                    unique = 0;
+                }
+                
+                if (solution[row][col][index] == lastId)
+                {
+                    count++;
+                }
+                else
+                {
+                    lastId = solution[row][col][index];
+                    count = 1;
+                }
+                
+                if (lastId != NOT_SET && count == validRectangles[lastId])
+                {
+                    // TODO the box must be empty now, right?
+                    solution[row][col][CERTAIN] = lastId;
+                    counts[lastId] += 1;
+                    // TODO should I check if the count it not higher? It should not be
+                    goto nextBox;
+                }
+            }
+            if (unique)
             {
                 changeFound++;
                 if (solution[row][col][CERTAIN] != NOT_SET
-                    && solution[row][col][CERTAIN] != solution[row][col][0]) // PERFORMANCE: Not quite sure why this happens, should be eliminated
+                    && solution[row][col][CERTAIN] != lastId) // PERFORMANCE: Not quite sure why this happens, should be eliminated
                 {
                     return NO_SOLUTION;
                 }
-                const int id = solution[row][col][0];
-                solution[row][col][CERTAIN] = id;
-                counts[id] += 1;
+                solution[row][col][CERTAIN] = lastId;
+                counts[lastId] += 1;
                 
                 //     PERFORMANCE: This should not happen. How did we got here in the first place?
                 //     ALSO A HUGE BUG!!! Seriously, fix this!
                 // This should be fixed now
-                if (counts[id] > sizes[id]) {
-                    counts[id] = sizes[id];
+                if (counts[lastId] > sizes[lastId]) {
+                    counts[lastId] = sizes[lastId];
                 }
             }
+
+        nextBox:
             // clear possible values
             // PERFORMANCE: could check, if value is zero break, but the check might be slow
             for (int i = 0; i < MAX_BOXES; ++i)
@@ -338,83 +366,6 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
             }
         }
     }
-    
-    // if there are multiple ids on line with gap, fill the gap
-// TODO FIX (test against basic/5
-if (0) {
-    int lastId;
-    int gapFrom; // either row or col, based on context
-    // test rows for gaps
-    for (int row = 0; row < height; ++row)
-    {
-        lastId = NOT_SET;
-        gapFrom = NOT_SET;
-        for (int col = 0; col < width; ++col)
-        {
-            if (lastId == NOT_SET)
-            {
-                lastId = solution[row][col][CERTAIN];
-            }
-            else if (solution[row][col][CERTAIN] == NOT_SET
-                && lastId != NOT_SET)
-            {
-                gapFrom = col;
-            }
-            else if (solution[row][col][CERTAIN] != NOT_SET
-                && solution[row][col][CERTAIN] != lastId)
-            {
-                gapFrom = NOT_SET;
-                lastId = solution[row][col][CERTAIN];
-            }
-            else if (gapFrom != NOT_SET
-                     && solution[row][col][CERTAIN] == lastId)
-            {
-                for (int colBack = gapFrom; colBack < col; ++colBack)
-                {
-                    solution[row][colBack][CERTAIN] = lastId;
-                    counts[lastId]++;
-                    changeFound++;
-                }
-            }
-        }
-    }
-    // test cols for gaps
-    // TODO check if this is ok, I just switched for loops
-    for (int col = 0; col < width; ++col)
-    {
-        lastId = NOT_SET;
-        gapFrom = NOT_SET;
-        for (int row = 0; row < height; ++row)
-        {
-            if (lastId == NOT_SET)
-            {
-                lastId = solution[row][col][CERTAIN];
-            }
-            else if (solution[row][col][CERTAIN] == NOT_SET
-                     && lastId != NOT_SET)
-            {
-                gapFrom = row;
-            }
-            else if (solution[row][col][CERTAIN] != NOT_SET
-                     && solution[row][col][CERTAIN] != lastId)
-            {
-                gapFrom = NOT_SET;
-                lastId = solution[row][col][CERTAIN];
-            }
-            else if (gapFrom != NOT_SET
-                     && solution[row][col][CERTAIN] == lastId)
-            {
-                for (int rowBack = gapFrom; rowBack < col; ++rowBack)
-                {
-                    solution[rowBack][col][CERTAIN] = lastId;
-                    counts[lastId]++;
-                    changeFound++;
-                }
-            }
-        }
-    }
-}
-
     return changeFound ? 1 : NOT_FOUND;
 }
 
@@ -662,7 +613,7 @@ int main()
     do
     {
         res = fillCertainBoxes(solution, sizes, width, height);
-        //printSolution(solution, sizes, width, height, 1);
+        printSolution(solution, sizes, width, height, 0, 1);
         printSolution(solution, sizes, width, height, 0, 0);
 
         if (res == SOLUTION_FOUND)
