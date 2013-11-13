@@ -366,6 +366,26 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
             }
         }
     }
+    
+    // return solution_found if done
+    int allCertain = 1;
+    for (int row = 0; row < height; ++row)
+    {
+        for (int col = 0; col < width; ++col)
+        {
+            if (solution[row][col][CERTAIN] == NOT_SET)
+            {
+                allCertain = 0;
+                goto end;
+            }
+        }
+    }
+    if (allCertain)
+    {
+        return SOLUTION_FOUND;
+    }
+    
+end:
     return changeFound ? 1 : NOT_FOUND;
 }
 
@@ -613,8 +633,8 @@ int main()
     do
     {
         res = fillCertainBoxes(solution, sizes, width, height);
-        printSolution(solution, sizes, width, height, 0, 1);
-        printSolution(solution, sizes, width, height, 0, 0);
+//        printSolution(solution, sizes, width, height, 0, 1);
+//        printSolution(solution, sizes, width, height, 0, 0);
 
         if (res == SOLUTION_FOUND)
         {
