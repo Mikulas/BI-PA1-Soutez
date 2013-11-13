@@ -25,16 +25,6 @@
 // potreba zmenit to, jak se pracuje s detekci CERTAIN ted, to jak je tam to porovnavani [0] a [1]. Misto
 // toho by slo pres to iterovat a pocitat, kolik ruznych possible tam je. Pokud == 1, pick treba [0] (protoze jsou stejny)
 
-// a is current sount, max 99
-// b is expected count, max 99
-// TODO use another data types! char
-// TODO 2 remove it altogether as only b is needed
-struct Pair
-{
-    int a;
-    int b;
-};
-
 void inputError(int d)
 {
     d = 0; // ignore warning
@@ -173,7 +163,7 @@ int counts[MATRIX_SIZE];
  * Should converge faster with sizes sorted by size desc
  * @return int index of last filled box or NOT_FOUND
  */
-int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height)
+int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height)
 {
     // The following algorithm only works if each rectangle contains exactly one id in CERTAIN:
     // For all numbers in CERTAIN, draw all rectangles that number can fill (without backtracking)
@@ -218,9 +208,9 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
             const int id = row * MAX_WIDTH + col;
 
             // if this rectangle is complete
-            if (counts[id] == sizes[id].b)
+            if (counts[id] == sizes[id])
                 continue;
-            const int size = sizes[id].b; // if sort is not active, which indeed isn't
+            const int size = sizes[id];
             done = 0;
 
             int box_width = 1;
@@ -336,8 +326,8 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[]
                 //     PERFORMANCE: This should not happen. How did we got here in the first place?
                 //     ALSO A HUGE BUG!!! Seriously, fix this!
                 // This should be fixed now
-                if (counts[id] > sizes[id].b) {
-                    counts[id] = sizes[id].b;
+                if (counts[id] > sizes[id]) {
+                    counts[id] = sizes[id];
                 }
             }
             // clear possible values
@@ -433,7 +423,7 @@ if (0) {
 //  return ( ((struct Pair*) second)->b - ((struct Pair*) first)->b );
 // }
 
-void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height)
+void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height)
 {
     for (int row = 0; row < height; ++row)
     {
@@ -446,7 +436,7 @@ void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[
     }
 }
 
-void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], const int width, const int height, int originalOnly, int printId)
+void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height, int originalOnly, int printId)
 {
     // print first border line
     printf("+");
@@ -463,10 +453,10 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
         for (int col = 0; col < width; ++col)
         {
             const int id = solution[row][col][CERTAIN];
-            const int complete = counts[id] == sizes[id].b;
+            const int complete = counts[id] == sizes[id];
             
             const int rightId = col + 1 < MAX_WIDTH ? solution[row][col + 1][CERTAIN] : NOT_SET;
-            const int rightComplete = rightId != NOT_SET ? counts[rightId] == sizes[rightId].b : 0;
+            const int rightComplete = rightId != NOT_SET ? counts[rightId] == sizes[rightId] : 0;
 
             //printf("complete: %d (real %d == exp %d)\n", complete, counts[id], sizes[id].b);
             if (id == NOT_SET || ((originalOnly || complete) && !solution[row][col][ORIGINAL]))
@@ -475,7 +465,7 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
             }
             else
             {
-                const int size = sizes[id].b;
+                const int size = sizes[id];
                 if (printId)
                 {
                     if (id < 10) // two digits
@@ -524,9 +514,9 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], struct Pair sizes[], 
             for (int col = 0; col < width; ++col)
             {
                 const int id = solution[row][col][CERTAIN]; // TODO refactor with branch above
-                const int complete = counts[id] == sizes[id].b;
+                const int complete = counts[id] == sizes[id];
                 const int downId = row + 1 < MAX_HEIGHT ? solution[row + 1][col][CERTAIN] : NOT_SET;
-                const int downComplete = downId != NOT_SET ? counts[downId] == sizes[downId].b : 0;
+                const int downComplete = downId != NOT_SET ? counts[downId] == sizes[downId] : 0;
 
                 if (row + 1 >= height) // board border
                 {
@@ -581,7 +571,7 @@ int main()
     // MEMORY: dynamically allocate solution
     int board[MAX_HEIGHT][MAX_WIDTH] = {{0}}; // TODO check this works
     int (*p_board)[MAX_WIDTH] = board;
-    struct Pair sizes[MAX_HEIGHT * MAX_WIDTH]; // could be mapped to MAX_BOXES instead but this is faster
+    char sizes[MAX_HEIGHT * MAX_WIDTH]; // could be mapped to MAX_BOXES instead but this is faster
     int solution[MAX_HEIGHT][MAX_WIDTH][MATRIX_SIZE] = {{{0}}};
     for (int row = 0; row < MAX_HEIGHT; ++row)
     {
@@ -632,15 +622,15 @@ int main()
                 solution[row][col][CERTAIN] = id;
                 solution[row][col][ORIGINAL] = 1;
                 counts[id] = 1; // there is exactly one number with this id on the board at this point
-                sizes[id].b = board[row][col];
+                sizes[id] = board[row][col];
                 blanks--;
             }
             else
             {
                 solution[row][col][CERTAIN] = NOT_SET;
                 solution[row][col][ORIGINAL] = 0;
-                sizes[id].a = 0;
-                sizes[id].b = 0;
+                sizes[id] = 0;
+                sizes[id] = 0;
             }
         }
     }
