@@ -13,9 +13,9 @@ $stats = (object) ['passed' => 0, 'failed' => 0];
 $total_time = 0;
 foreach (scandir('tests') as $dir)
 {
+	$firstMatched = TRUE;
 	if (in_array($dir, ['.', '..'])) continue;
 
-	echo "\033[1;45;30m  $dir  \033[0m\n\n";
 	foreach (glob("tests/$dir/*.in") as $in)
 	{
 		if ($tests) {
@@ -31,10 +31,24 @@ foreach (scandir('tests') as $dir)
 				continue;
 			}
 		}
+		if ($firstMatched)
+		{
+			echo "\033[1;45;30m  $dir  \033[0m\n\n";
+			$firstMatched = FALSE;
+		}
 
 		$out = str_replace('.in', '.out', $in);
 		$cin = file_get_contents($in);
-		$expected = file_get_contents($out);
+		$defaultOut = "tests/$dir/default.out";
+		$expected = "";
+		if (file_exists($out))
+		{
+			$expected = file_get_contents($out);
+		}
+		elseif (file_exists($defaultOut))
+		{
+			$expected = file_get_contents($defaultOut);
+		}
 
 		$descriptorspec = [
 				0 => ["pipe", "r"], // stdin is a pipe that the child will read from
