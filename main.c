@@ -426,19 +426,6 @@ end:
 //  return ( ((struct Pair*) second)->b - ((struct Pair*) first)->b );
 // }
 
-void printRawSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height)
-{
-    for (int row = 0; row < height; ++row)
-    {
-        for (int col = 0; col < width; ++col)
-        {
-            const int id = solution[row][col][CERTAIN];
-            printf("%d ", id);
-        }
-        printf("\n");
-    }
-}
-
 void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height, int originalOnly, int printId)
 {
     // print first border line
