@@ -310,8 +310,10 @@ runAgain:
             int lastId = NOT_SET;
             int unique = 1;
             int count = 0;
+            int differentFromLast;
             for (int index = 0; index < MAX_BOXES; ++index)
             {
+                differentFromLast = 0;
                 if (solution[row][col][index] == NOT_SET)
                 {
                     break;
@@ -330,6 +332,7 @@ runAgain:
                 {
                     lastId = solution[row][col][index];
                     count = 1;
+                    differentFromLast = 1;
                 }
              
                 if (lastId != NOT_SET && count == validRectangles[lastId])
@@ -346,8 +349,9 @@ runAgain:
                 }
                 if (usePossible != NOT_SET)
                 {
-                    if (usePossible == 0)
+                    if (differentFromLast && usePossible == 0)
                     {
+//                        printf("forcing possible value at [%d;%d]\n", row, col);
                         solution[row][col][CERTAIN] = lastId;
                         changeFound++;
                         usePossible = NOT_SET;
@@ -358,7 +362,7 @@ runAgain:
                         }
                         goto runAgain;
                     }
-                    else
+                    else if (differentFromLast)
                     {
                         usePossible--;
                     }
@@ -563,6 +567,7 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width,
     int res;
     int solutionCount = 0;
 
+//    printf("%*s%s%d\n", dbgDepth * 2, "", "save state depth ", dbgDepth);
     int cloneCounts[MAX_HEIGHT * MAX_WIDTH];
     int cloneCertain[MAX_HEIGHT][MAX_WIDTH]; // MEMORY: not [height][widht] for better dbg, allocate it dynamically
     // save CERTAIN matrix so this branch can be reverted later
@@ -607,10 +612,21 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width,
         {
             int branchToForce = 0; // index
             int status;
+            int innerCloneCounts[MAX_HEIGHT * MAX_WIDTH];
+            int innerCloneCertain[MAX_HEIGHT][MAX_WIDTH]; // MEMORY: not [height][widht] for better dbg, allocate it dynamically
+//            printf("%*s%s%d\n", dbgDepth * 2, "", "save INNER state depth ", dbgDepth);
+            for (int row = 0; row < height; ++row)
+            {
+                for (int col = 0; col < width; ++col)
+                {
+                    innerCloneCounts[row * MAX_HEIGHT + col] = counts[row * MAX_HEIGHT + col];
+                    innerCloneCertain[row][col] = solution[row][col][CERTAIN];
+                }
+            }
             do {
-                //printf("testing branch %d:\nbase board:\n", branchToForce);
-                printf("%*s%d\n", dbgDepth * 2, "", branchToForce);
-                //printSolution(solution, sizes, width, height, 0, 1);
+//                printf("\nbase board:\n");
+//                printSolution(solution, sizes, width, height, 0, 1);
+//                printf("%*s%d\n", dbgDepth * 2, "", branchToForce);
                 
                 status = solve(solution, sizes, width, height, branchToForce, dbgDepth + 1);
                 if (status > 0) {
@@ -618,12 +634,13 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width,
                     solutionCount += status;
                 }
                 
+//                printf("%*s%s%d\n", dbgDepth * 2, "", "load INNER state depth ", dbgDepth);
                 for (int row = 0; row < height; ++row)
                 {
                     for (int col = 0; col < width; ++col)
                     {
-                        solution[row][col][CERTAIN] = cloneCertain[row][col];
-                        counts[row * MAX_HEIGHT + col] = cloneCounts[row * MAX_HEIGHT + col];
+                        solution[row][col][CERTAIN] = innerCloneCertain[row][col];
+                        counts[row * MAX_HEIGHT + col] = innerCloneCounts[row * MAX_HEIGHT + col];
                         
                         // TODO this should really not be handleded here
                         // PERFORMANCE is hurt by this too!
@@ -644,6 +661,7 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width,
     // PERFORMANCE: after branching, this is not neccessary as it's wiped out after each branch
 cleanUp:
     // return solution tensor back to it's original state
+//    printf("%*s%s%d\n", dbgDepth * 2, "", "load state depth ", dbgDepth);
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
