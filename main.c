@@ -224,6 +224,9 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
                         {
                             if (x < 0 || x + box_width > width) continue; // outside of board
 
+                            // test if rectangle contains all ids already on board
+                            int sameIdsCoveredByThisRectangle = 0;
+
                             // test if [x,y] to [x+width, y+height] is empty
                             for (int test_y = y; test_y < y + box_height; ++test_y)
                             {
@@ -234,8 +237,6 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
                                     goto next; // break;
                                 }
                             }
-                            // test if rectangle contains all ids already on board
-                            int sameIdsCoveredByThisRectangle = 0;
                             for (int test_y = y; test_y < y + box_height; ++test_y)
                             {
                                 for (int test_x = x; test_x < x + box_width; ++test_x)
