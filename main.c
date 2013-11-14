@@ -662,12 +662,16 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width,
 cleanUp:
     // return solution tensor back to it's original state
 //    printf("%*s%s%d\n", dbgDepth * 2, "", "load state depth ", dbgDepth);
-    for (int row = 0; row < height; ++row)
+
+    if (branch != NOT_SET) // if branch is not set, it might have had only one solution, keep it so we can print it
     {
-        for (int col = 0; col < width; ++col)
+        for (int row = 0; row < height; ++row)
         {
-            solution[row][col][CERTAIN] = cloneCertain[row][col];
-            counts[row * MAX_HEIGHT + col] = cloneCounts[row * MAX_HEIGHT + col];
+            for (int col = 0; col < width; ++col)
+            {
+                solution[row][col][CERTAIN] = cloneCertain[row][col];
+                counts[row * MAX_HEIGHT + col] = cloneCounts[row * MAX_HEIGHT + col];
+            }
         }
     }
 
