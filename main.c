@@ -199,8 +199,7 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
     {
         for (int col = 0; col < width; ++col)
         {
-            if (solution[row][col][ORIGINAL] != 1) // TODO verify (tady bylo puvodne CERTAIN,
-                //ale tohle musi byt rychlejsi a musi dat stejne vysledky)
+            if (solution[row][col][ORIGINAL] != 1)
             {
                 continue;
             }
@@ -220,8 +219,11 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
             {
                 if (size % box_width == 0) {
                     box_height = size / box_width;
-                    // TODO test if this rectangle fits, starting from any point containg current row col
-                    // move it all the way up and test all moves down
+
+                    /**
+                     * Tests if this rectangle fits, starting from any point containg
+                     * current [row;col]. Moves it all the way up and tests all moves down
+                     */
                     for (int y = row + (-box_height + 1); y <= row; ++y)
                     {
                         if (y < 0 || y + box_height > height) continue; // outside of board
@@ -240,37 +242,30 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
                                 {
                                     if (solution[test_y][test_x][CERTAIN] != NOT_SET
                                         && solution[test_y][test_x][CERTAIN] != id)
-                                    goto next; // break;
-                                }
-                            }
-                            for (int test_y = y; test_y < y + box_height; ++test_y)
-                            {
-                                for (int test_x = x; test_x < x + box_width; ++test_x)
-                                {
+                                        goto next;
                                     if (solution[test_y][test_x][CERTAIN] == id)
                                         sameIdsCoveredByThisRectangle++;
                                 }
                             }
                             if (sameIdsCoveredByThisRectangle != counts[id])
                             {
-                                // rectangle does not contain all same ids already on board
+                                // Rectangle does not contain all same ids already on board.
                                 goto next;
                             }
-                            
-                            // if we got here, the box fits: write to solution as possible number
+
+                            // Box fits and contains all certain boxes it should.
                             validRectangles[id]++;
                             for (int test_y = y; test_y < y + box_height; ++test_y)
                             {
                                 for (int test_x = x; test_x < x + box_width; ++test_x)
                                 {
                                     if (solution[test_y][test_x][CERTAIN] == id)
-                                        continue; // TODO check this
+                                        continue;
 
                                     for (int index = 0; /* must break */; ++index)
                                     {
                                         if (solution[test_y][test_x][index] == NOT_SET)
                                         {
-                                            //printf("[%d][%d] could be id %d\n", test_y, test_x, id);
                                             solution[test_y][test_x][index] = id;
                                             break;
                                         }
@@ -301,9 +296,11 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
     // is this covered by count check below?
 
     /**
-     * For all boxes look if there is only one way to fill a box. If so, move it to certain and start again.
+     * For all boxes look if there is only one way to fill a single
+     * box. If so, set it to certain and return to runAgain.
      */
     int changeFound = 0;
+    int allCertain = 1;
 runAgain:
     for (int row = 0; row < height; ++row)
     {
@@ -314,6 +311,7 @@ runAgain:
                 continue;
             }
 
+            allCertain = 0;
             int lastId = NOT_SET;
             int unique = 1;
             int count = 0;
@@ -325,12 +323,12 @@ runAgain:
                 {
                     break;
                 }
-                
+
                 if (lastId != NOT_SET && solution[row][col][index] != lastId)
                 {
                     unique = 0;
                 }
-                
+
                 if (solution[row][col][index] == lastId)
                 {
                     count++;
@@ -341,7 +339,7 @@ runAgain:
                     count = 1;
                     differentFromLast = 1;
                 }
-             
+
                 if (lastId != NOT_SET && count == validRectangles[lastId])
                 {
                     changeFound++;
@@ -351,14 +349,12 @@ runAgain:
                     {
                         return NO_SOLUTION;
                     }
-                    // TODO should I check if the count it not higher? It should not be
                     goto nextBox;
                 }
                 if (usePossible != NOT_SET)
                 {
                     if (differentFromLast && usePossible == 0)
                     {
-//                        printf("forcing possible value at [%d;%d]\n", row, col);
                         solution[row][col][CERTAIN] = lastId;
                         changeFound++;
                         usePossible = NOT_SET;
@@ -390,7 +386,7 @@ runAgain:
                 }
                 solution[row][col][CERTAIN] = lastId;
                 counts[lastId] += 1;
-                
+
                 if (counts[lastId] > sizes[lastId])
                 {
                     return NO_SOLUTION;
@@ -399,7 +395,6 @@ runAgain:
 
         nextBox:
             // clear possible values
-            // PERFORMANCE: could check, if value is zero break, but the check might be slow
             for (int i = 0; i < MAX_BOXES; ++i)
             {
                 solution[row][col][i] = NOT_SET;
@@ -407,32 +402,8 @@ runAgain:
         }
     }
 
-    // return solution_found if done
-    int allCertain = 1;
-    for (int row = 0; row < height; ++row)
-    {
-        for (int col = 0; col < width; ++col)
-        {
-            if (solution[row][col][CERTAIN] == NOT_SET)
-            {
-                allCertain = 0;
-                goto end;
-            }
-        }
-    }
-    if (allCertain)
-    {
-        return SOLUTION_FOUND;
-    }
-    
-end:
-    return changeFound ? 1 : NOT_FOUND;
+    return allCertain ? SOLUTION_FOUND : (changeFound ? 1 : NOT_FOUND);
 }
-
-// int compareSizesDesc(const void * first, const void * second)
-// {
-//  return ( ((struct Pair*) second)->b - ((struct Pair*) first)->b );
-// }
 
 void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
     const int width, const int height, int originalOnly, int printId)
@@ -453,11 +424,10 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
         {
             const int id = solution[row][col][CERTAIN];
             const int complete = counts[id] == sizes[id];
-            
+
             const int rightId = col + 1 < MAX_WIDTH ? solution[row][col + 1][CERTAIN] : NOT_SET;
             const int rightComplete = rightId != NOT_SET ? counts[rightId] == sizes[rightId] : 0;
 
-            //printf("complete: %d (real %d == exp %d)\n", complete, counts[id], sizes[id].b);
             if (id == NOT_SET || ((originalOnly || complete) && !solution[row][col][ORIGINAL]))
             {
                 printf("  ");
@@ -564,7 +534,6 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
     int res;
     int solutionCount = 0;
 
-//    printf("%*s%s%d\n", dbgDepth * 2, "", "save state depth ", dbgDepth);
     int cloneCounts[MAX_HEIGHT * MAX_WIDTH];
     int cloneCertain[MAX_HEIGHT][MAX_WIDTH]; // MEMORY: not [height][widht] for better dbg, allocate it dynamically
     // save CERTAIN matrix so this branch can be reverted later
@@ -581,8 +550,6 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
     {
         res = fillCertainBoxes(solution, sizes, width, height, firstRun ? branch : NOT_SET);
         firstRun = 0;
-        // printSolution(solution, sizes, width, height, 0, 1);
-        // printSolution(solution, sizes, width, height, 0, 0);
 
         if (res == NO_MORE_BRANCHES)
         {
@@ -591,8 +558,8 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
         }
         else if (res == SOLUTION_FOUND)
         {
-//            printf("final solution:\n");
-//            printSolution(solution, sizes, width, height, 1, 1);
+            // printf("final solution:\n");
+            // printSolution(solution, sizes, width, height, 1, 1);
 
             solutionCount = 1;
             goto cleanUp;
@@ -600,7 +567,7 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
         else if (res == NO_SOLUTION)
         {
             // reseni tohohle branche neexistuje
-            // tzn. pokud mas branch, jenom se popne stack na vyssi branch,
+            // tzn. pokud mam branch, jenom se popne stack na vyssi branch,
             // jinak se vypise reseni pokud je tohle ve stacku nejvyssi solve
             solutionCount = 0;
             goto cleanUp;
@@ -611,7 +578,7 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
             int status;
             int innerCloneCounts[MAX_HEIGHT * MAX_WIDTH];
             int innerCloneCertain[MAX_HEIGHT][MAX_WIDTH]; // MEMORY: alloc dynamically
-//            printf("%*s%s%d\n", dbgDepth * 2, "", "save INNER state depth ", dbgDepth);
+            // printf("%*s%s%d\n", dbgDepth * 2, "", "save INNER state depth ", dbgDepth);
             for (int row = 0; row < height; ++row)
             {
                 for (int col = 0; col < width; ++col)
@@ -621,24 +588,24 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
                 }
             }
             do {
-//                printf("\nbase board:\n");
-//                printSolution(solution, sizes, width, height, 0, 1);
-//                printf("%*s%d\n", dbgDepth * 2, "", branchToForce);
-                
+                // printf("\nbase board:\n");
+                // printSolution(solution, sizes, width, height, 0, 1);
+                // printf("%*s%d\n", dbgDepth * 2, "", branchToForce);
+
                 status = solve(solution, sizes, width, height, branchToForce, dbgDepth + 1);
                 if (status > 0) {
                     // negative numbers are reserved for status
                     solutionCount += status;
                 }
-                
-//                printf("%*s%s%d\n", dbgDepth * 2, "", "load INNER state depth ", dbgDepth);
+
+                // printf("%*s%s%d\n", dbgDepth * 2, "", "load INNER state depth ", dbgDepth);
                 for (int row = 0; row < height; ++row)
                 {
                     for (int col = 0; col < width; ++col)
                     {
                         solution[row][col][CERTAIN] = innerCloneCertain[row][col];
                         counts[row * MAX_HEIGHT + col] = innerCloneCounts[row * MAX_HEIGHT + col];
-                        
+
                         // TODO this should really not be handleded here
                         // PERFORMANCE is hurt by this too!
                         for (int i = 0; i < MAX_BOXES; ++i)
@@ -647,20 +614,17 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
                         }
                     }
                 }
-                
+
                 branchToForce++;
             } while (status != NO_MORE_BRANCHES);
             goto cleanUp;
-            // TODO new branch required
         }
     } while (res > 0); // number of changes found
 
     // PERFORMANCE: after branching, this is not neccessary as it's wiped out after each branch
 cleanUp:
-    // return solution tensor back to it's original state
-//    printf("%*s%s%d\n", dbgDepth * 2, "", "load state depth ", dbgDepth);
-
-    if (branch != NOT_SET) // if branch is not set, it might have had only one solution, keep it so we can print it
+     // if branch is not set, it had max one solution, keep it so we can print it
+    if (branch != NOT_SET)
     {
         for (int row = 0; row < height; ++row)
         {
@@ -685,15 +649,16 @@ int main()
 
     // MEMORY: dynamically allocate sizes
     // MEMORY: dynamically allocate solution
-    int board[MAX_HEIGHT][MAX_WIDTH] = {{0}}; // TODO check this works
+    int board[MAX_HEIGHT][MAX_WIDTH];
     int (*p_board)[MAX_WIDTH] = board;
-    char sizes[MAX_HEIGHT * MAX_WIDTH]; // could be mapped to MAX_BOXES instead but this is faster
+    char sizes[MAX_HEIGHT * MAX_WIDTH];
 
     int solution[MAX_HEIGHT][MAX_WIDTH][MATRIX_SIZE] = {{{0}}};
     for (int row = 0; row < MAX_HEIGHT; ++row)
     {
         for (int col = 0; col < MAX_WIDTH; ++col)
         {
+            board[row][col] = 0;
             for (int i = 0; i < MATRIX_SIZE; ++i)
             {
                 solution[row][col][i] = NOT_SET;
@@ -705,39 +670,24 @@ int main()
     int width, height, sum;
     loadPuzzle(p_board, &width, &height, &sum);
 
-    //
-    // Solve puzzle
-    //
-    /*
-    for (int row = 0; row < height; ++row)
-    {
-        for (int col = 0; col < width; ++col)
-        {
-            printf("%d ", board[row][col]);
-        }
-        printf("\n");
-    }
-    printf("width=%d height=%d\n", width, height);
-    //*/
-
     if (sum != width * height) // optimization
     {
         printf("Reseni neexistuje.\n");
         return 0;
-        // TODO else ale to jeste neznamena, ze existuje
+        // else does not mean it does have a solution
     }
 
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
         {
-            int id = row * MAX_WIDTH + col;
+            const int id = row * MAX_WIDTH + col;
             // set unique id for this box
             if (board[row][col] != 0)
             {
                 solution[row][col][CERTAIN] = id;
                 solution[row][col][ORIGINAL] = 1;
-                counts[id] = 1; // there is exactly one number with this id on the board at this point
+                counts[id] = 1;
                 sizes[id] = board[row][col];
             }
             else
@@ -748,23 +698,6 @@ int main()
             }
         }
     }
-
-    // no need to sort full length of sizes, only used are better.
-    //qsort(sizes, height * width, sizeof(struct Pair), compareSizesDesc);
-    // printf("after qsort\n");
-    // for (int i = 0; i < height; ++i)
-    // {
-    //  for (int k = 0; k < width; ++k)
-    //  {
-    //      int id = i * MAX_WIDTH + k;
-    //      printf("%d %d\n", sizes[id].a, sizes[id].b);
-    //  }
-    // }
-
-    // Make deterministic partial solutions.
-    // PERFORMANCE: Worst case first number is changed and then the
-    // puzzle is reiterated all over again => break after change and
-    // loop only once, or continue and break on the changed index.
 
     // MEMORY: might as well free $board now.
 
@@ -782,30 +715,6 @@ int main()
     {
         printf("Celkem reseni: %d\n", result);
     }
-
-    // FIND all certain numbers, example:
-    // 5#  resolves to  5#
-    // 2#               22
-    //
-    // or
-    // ##3# always must evaluate to #33#
-    // save those to CERTAIN
-    // if there is already a CERTAIN number on the location,
-    // puzzle has no solution
-
-    // FIND possible numbers
-    // 5#3 means # is either 5 or 3 only
-    // save this to first empty location
-    // when after iteration over all boxes this vector
-    // only contains one number, it should be moved to certain
-
-    // loop while no new numbers are added
-    // then, there are multiple solutions:
-    // pick one, continue, then return and try other paths
-
-    // prime numbers are always in line
-    // is factorization any good?
-    // many numbers only have one solution
 
     #ifndef __PROGTEST__
         end = clock();
