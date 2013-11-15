@@ -16,7 +16,10 @@
 #define SOLUTION_FOUND -3 // fillCertainBoxes return value
 #define NO_MORE_BRANCHES -4 // fillCertainBoxes return value
 
-void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height, int originalOnly, int printId);
+// TODO refactor loadPuzzle, then polish and resolve todos
+
+void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
+    const int width, const int height, int originalOnly, int printId);
 
 void inputError(int d)
 {
@@ -77,6 +80,7 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
                     (firstDigit != 0 && (c < 48 || c > 57)) // any digit
                  || (firstDigit == 0 && (c < 49 || c > 57)) // only [1-9] if no number before
                 )) inputError(7); // not space or [1-9]
+            if (state == 2 && firstDigit != 0 && c == ' ') inputError(7); // first is digit, but then nothing
 
             if (state == 1 && c != ' ')
             {
@@ -156,7 +160,8 @@ int counts[MAX_HEIGHT * MAX_WIDTH];
  * Should converge faster with sizes sorted by size desc
  * @return int index of last filled box or NOT_FOUND
  */
-int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height, int usePossible)
+int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
+    const int width, const int height, int usePossible)
 {
     // The following algorithm only works if each rectangle contains exactly one id in CERTAIN:
     // For all numbers in CERTAIN, draw all rectangles that number can fill (without backtracking)
@@ -194,7 +199,8 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const
     {
         for (int col = 0; col < width; ++col)
         {
-            if (solution[row][col][ORIGINAL] != 1) // TODO verify (tady bylo puvodne CERTAIN, ale tohle musi byt rychlejsi a musi dat stejne vysledky)
+            if (solution[row][col][ORIGINAL] != 1) // TODO verify (tady bylo puvodne CERTAIN,
+                //ale tohle musi byt rychlejsi a musi dat stejne vysledky)
             {
                 continue;
             }
@@ -377,7 +383,8 @@ runAgain:
             {
                 changeFound++;
                 if (solution[row][col][CERTAIN] != NOT_SET
-                    && solution[row][col][CERTAIN] != lastId) // PERFORMANCE: Not quite sure why this happens, should be eliminated
+                    && solution[row][col][CERTAIN] != lastId)
+                    // PERFORMANCE: Not quite sure why the other one happens, should be eliminated
                 {
                     return NO_SOLUTION;
                 }
@@ -427,7 +434,8 @@ end:
 //  return ( ((struct Pair*) second)->b - ((struct Pair*) first)->b );
 // }
 
-void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height, int originalOnly, int printId)
+void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
+    const int width, const int height, int originalOnly, int printId)
 {
     // print first border line
     printf("+");
@@ -550,7 +558,8 @@ void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const i
     printf("\n");
 }
 
-int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width, const int height, int branch, int dbgDepth)
+int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
+    const int width, const int height, int branch, int dbgDepth)
 {
     int res;
     int solutionCount = 0;
@@ -601,7 +610,7 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[], const int width,
             int branchToForce = 0; // index
             int status;
             int innerCloneCounts[MAX_HEIGHT * MAX_WIDTH];
-            int innerCloneCertain[MAX_HEIGHT][MAX_WIDTH]; // MEMORY: not [height][widht] for better dbg, allocate it dynamically
+            int innerCloneCertain[MAX_HEIGHT][MAX_WIDTH]; // MEMORY: alloc dynamically
 //            printf("%*s%s%d\n", dbgDepth * 2, "", "save INNER state depth ", dbgDepth);
             for (int row = 0; row < height; ++row)
             {
