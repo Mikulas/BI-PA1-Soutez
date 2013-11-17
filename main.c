@@ -44,16 +44,33 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
     //
     int c;
     char state = 0; // 0: expecting +, 1: expecting - or EOL, 2: expecting -
-    do {
+    while (1) {
         c = getchar();
-        if (state == 0) {
+        if (state == 0)
+        {
             if (c != '+') inputError(1);
             (*width)++;
         }
-        if (state == 1 && c != '-' && c != '\n') inputError(2);
-        if (state == 2 && c != '-') inputError(3);
+        else if (state == 1)
+        {
+            if (c == '-')
+            { }
+            else if (c == '\n')
+            {
+                break;
+            }
+            else
+            {
+                inputError(2);
+            }
+        }
+        else if (state == 2)
+        {
+            if (c != '-') inputError(3);
+        }
         state = (state + 1) % 3;
-    } while (c != '\n');
+    };
+
     if (*width == 0 || *width > MAX_WIDTH) inputError(4);
 
     int column;
