@@ -112,6 +112,10 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
                 else if (c >= 48 && c <= 57)
                 {
                     const int n = firstDigit * 10 + c - 48;
+                    if (n == 0)
+                    {
+                        inputError(2);
+                    }
                     board[*height][column] = n;
                     numbers++;
                     *sum += n;
