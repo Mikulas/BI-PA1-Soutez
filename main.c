@@ -17,6 +17,8 @@
 #define NO_MORE_BRANCHES -4 // fillCertainBoxes return value
 
 // TODO refactor loadPuzzle, then polish and resolve todos
+// 
+// // test extra 0021 is wrong in solution 48
 
 void printSolution(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
     const int width, const int height, int originalOnly, int printId);
@@ -251,8 +253,28 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
      * For each id on field, find all properly sized rectangles and test they fit on board
      */
 
+    // first block
     int done = 1;
     int validRectangles[MAX_HEIGHT * MAX_WIDTH];
+
+    // second block
+    int changeFound = 0;
+    int allCertain = 1;
+
+repeat:
+    // TODO optimize
+    // clear possible values
+    for (int row = 0; row < height; ++row)
+    {
+        for (int col = 0; col < width; ++col)
+        {
+            for (int i = 0; i < MAX_BOXES; ++i)
+            {
+                solution[row][col][i] = NOT_SET;
+            }
+        }
+    }
+
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
@@ -357,9 +379,6 @@ int fillCertainBoxes(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
      * For all boxes look if there is only one way to fill a single
      * box. If so, set it to certain and return to runAgain.
      */
-    int changeFound = 0;
-    int allCertain = 1;
-runAgain:
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
@@ -400,14 +419,14 @@ runAgain:
 
                 if (lastId != NOT_SET && count == validRectangles[lastId])
                 {
-                    changeFound++;
                     solution[row][col][CERTAIN] = lastId;
                     counts[lastId] += 1;
                     if (counts[lastId] > sizes[lastId])
                     {
                         return NO_SOLUTION;
                     }
-                    goto nextBox;
+                    changeFound++;
+                    goto repeat;
                 }
                 if (usePossible != NOT_SET)
                 {
@@ -421,7 +440,9 @@ runAgain:
                         {
                             return NO_SOLUTION;
                         }
-                        goto runAgain;
+                        // goto runAgain;
+                        changeFound++;
+                        goto repeat;
                     }
                     else if (differentFromLast)
                     {
@@ -451,7 +472,6 @@ runAgain:
                 }
             }
 
-        nextBox:
             // clear possible values
             for (int i = 0; i < MAX_BOXES; ++i)
             {
@@ -617,7 +637,7 @@ int solve(int solution[][MAX_WIDTH][MATRIX_SIZE], char sizes[],
         else if (res == SOLUTION_FOUND)
         {
             // printf("final solution:\n");
-            // printSolution(solution, sizes, width, height, 1, 1);
+            // printSolution(solution, sizes, width, height, 1, 0);
 
             solutionCount = 1;
             goto cleanUp;
@@ -763,6 +783,7 @@ int main()
     if (result == 0)
     {
         printf("Reseni neexistuje.\n");
+        return 1;
     }
     else if (result == 1)
     {
@@ -778,5 +799,6 @@ int main()
         end = clock();
         time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
         printf("~~~%f~~~\n", time_spent);
+        return 0;
     #endif
 }
