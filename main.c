@@ -163,7 +163,16 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
             {
                 if (c == '\n')
                 {
-                    if (column != *width) inputError(15);
+                    if (column != *width)
+                    {
+                        inputError(15);
+                    }
+                    else if (closingLine)
+                    {
+                        int s = getchar();
+                        // printf("%d =? %d\n", s, EOF);
+                        if (s != EOF) inputError(16);
+                    }
                     break;
                 }
                 else if (closingLine == NOT_SET)
@@ -194,8 +203,9 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
 
             state = (state + 1) % 3;
         }
-        if (closingLine)
+        if (closingLine) {
             break;
+        }
     }
     if (*height > MAX_HEIGHT || numbers > MAX_BOXES) inputError(16);
 }

@@ -63,9 +63,7 @@ foreach (scandir('tests') as $dir)
 			echo "Failed\n";
 			die;
 		}
-		foreach (explode("\n", $cin) as $line) {
-			fwrite($pipes[0], "$line\n");
-		}
+		fwrite($pipes[0], $cin);
 		fclose($pipes[0]);
 
 		$real = stream_get_contents($pipes[1]);
