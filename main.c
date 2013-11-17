@@ -101,7 +101,7 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
                 else if (c == '|')
                 {
                     if (getchar() != '\n') inputError(11);
-                    // TODO check if column == width
+                    if (column + 1 != *width) inputError(12);
                     (*height)++;
                     break;
                 }
