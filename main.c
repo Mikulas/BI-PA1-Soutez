@@ -35,25 +35,24 @@ void inputError(int d)
 
 void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
 {
-    *width = 0;
+    *width = -1; // intentional offset
     *height = 0;
     *sum = 0;
 
     //
     // Load puzzle
     //
-    char c;
+    int c;
     char state = 0; // 0: expecting +, 1: expecting - or EOL, 2: expecting -
     do {
         c = getchar();
-        if (state == 0 && c != '+') inputError(1);
+        if (state == 0) {
+            if (c != '+') inputError(1);
+            (*width)++;
+        }
         if (state == 1 && c != '-' && c != '\n') inputError(2);
         if (state == 2 && c != '-') inputError(3);
         state = (state + 1) % 3;
-
-        if (state == 0) {
-            (*width)++;
-        }
     } while (c != '\n');
     if (*width == 0 || *width > MAX_WIDTH) inputError(4);
 
@@ -72,79 +71,107 @@ void loadPuzzle(int board[][MAX_WIDTH], int *width, int *height, int *sum)
         while (1)
         {
             c = getchar();
-            if (state == 3 && c != '|') inputError(5);
-            if (state == 0 && c != ' ' && c != '|') inputError(6);
-            if (state == 1 && c != ' ' && (c < 49 || c > 57)) inputError(7); // not space or [1-9]
-            if (state == 2 && c != ' '
-                && (
-                    (firstDigit != 0 && (c < 48 || c > 57)) // any digit
-                 || (firstDigit == 0 && (c < 49 || c > 57)) // only [1-9] if no number before
-                )) inputError(7); // not space or [1-9]
-            if (state == 2 && firstDigit != 0 && c == ' ') inputError(7); // first is digit, but then nothing
-
-            if (state == 1 && c != ' ')
+            if (state == 3)
             {
-                firstDigit = c - 48; // ascii number to int
+                if (c != '|') inputError(5);
             }
-            if (state == 2 && c != ' ')
+            else if (state == 0)
             {
-                int number = firstDigit * 10 + c - 48;
-                board[*height][column] = number;
-                *sum += number;
-                numbers++;
-                firstDigit = 0;
+                if (c == ' ')
+                {
+                    column++;
+                }
+                else if (c == '|')
+                {
+                    if (getchar() != '\n') inputError(11);
+                    // TODO check if column == width
+                    (*height)++;
+                    break;
+                }
+                else
+                {
+                    inputError(6);
+                }
+            }
+            else if (state == 1)
+            {
+                if (c == ' ')
+                { }
+                else if (c >= 49 && c <= 57) { // [1-9]
+                    firstDigit = c - 48; // ascii to number
+                }
+                else
+                {
+                    inputError(7);
+                }
+            }
+            else if (state == 2)
+            {
+                if (firstDigit == 0 && c == ' ')
+                { }
+                else if (c >= 48 && c <= 57)
+                {
+                    const int n = firstDigit * 10 + c - 48;
+                    board[*height][column] = n;
+                    numbers++;
+                    *sum += n;
+                    firstDigit = 0;
+                }
+                else
+                {
+                    inputError(8);
+                }
             }
 
-            if (state != 0 && c == '\n') inputError(8);
-            if (state != 3 && state != 0 && c == '|') inputError(9);
-            if (state == 0 && c == '\n' && column != *width) inputError(10);
-            if (state == 0 && c == '|') {
-                if (getchar() != '\n') inputError(11);
-                (*height)++;
-                break;
-            }
-
-            if (state == 2) {
-                column++;
-            }
             state = (state + 1) % 3;
         }
 
         state = 0;
         column = 0;
-        int closingLine = -1; // unset, 0 no, 1 yes
+        int closingLine = NOT_SET; // unset, 0 no, 1 yes
         // read border line
-        // 0: expecting +, 1: expecting space or EOL (or -), 2: expecting space
+        // 0: expecting +, 1: expecting space or EOL (or -), 2: expecting space (or -)
         while (1)
         {
             c = getchar();
-            if (state == 0 && c != '+') inputError(12);
-            if (state == 1 && c != '\n'
-                && (
-                    (closingLine == 0 && c != ' ')
-                 || (closingLine == 1 && c != '-')
-                 || (closingLine == -1 && c != '-' && c != ' ')
-                 )) inputError(13);
-            if (state == 2
-                && (
-                    (closingLine == 0 && c != ' ')
-                 || (closingLine == 1 && c != '-')
-                )) inputError(14);
-
-            if (state == 1 && closingLine == -1)
+            if (state == 0)
             {
-                closingLine = c == '-';
+                if (c != '+') inputError(12);
             }
-            if (state == 1 && c == '\n')
+            else if (state == 1)
             {
-                if (column != *width) inputError(15);
-                break;
+                if (c == '\n')
+                {
+                    if (column != *width) inputError(15);
+                    break;
+                }
+                else if (closingLine == NOT_SET)
+                {
+                    closingLine = c == '-';
+                }
+                else if (closingLine == 1 && c == '-')
+                { }
+                else if (closingLine == 0 && c == ' ')
+                { }
+                else
+                {
+                    inputError(10);
+                }
+            }
+            else if (state == 2)
+            {
+                column++;
+                if (closingLine == 1 && c == '-')
+                { }
+                else if (closingLine == 0 && c == ' ')
+                { }
+                else
+                {
+                    inputError(11);
+                }
             }
 
             state = (state + 1) % 3;
-            if (state == 2) {
-                column++;
-            }
         }
         if (closingLine)
             break;
